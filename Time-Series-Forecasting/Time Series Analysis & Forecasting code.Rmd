@@ -1,0 +1,318 @@
+---
+title: "Time Series Project"
+author: "Aylin Rahmanipoor"
+date: "2026-07-16"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(zoo) 
+library(forecast) 
+library(tseries) 
+```
+
+```{r}
+#1
+#dataset
+
+setwd("D:/time series project")
+getwd()
+
+train <- read.csv("train.csv" , stringsAsFactors = FALSE)
+transactions <- read.csv("transactions.csv" , stringsAsFactors = FALSE)
+oil <- read.csv("oil.csv" , stringsAsFactors = FALSE)
+```
+```{r}
+#2
+full_cal <- data.frame(
+  date = seq(as.Date("2013-01-01"), as.Date("2017-08-15"), by = "day")
+)
+cat("تعداد کل روزهای تقویم کامل:", nrow(full_cal), "\n\n")
+
+# تجمیع Sales روزانه
+sales_daily <- train %>%
+  group_by(date) %>%
+  summarise(sales = sum(sales, na.rm = TRUE)) %>%
+  ungroup()
+
+cat("تعداد روزهای Sales قبل از تکمیل تقویم:", nrow(sales_daily), "\n")
+
+sales_daily <- full_cal %>%
+  left_join(sales_daily %>% mutate(date = as.Date(date)), by = "date") %>%
+  mutate(sales = replace_na(sales, 0))
+
+cat("تعداد روزهای Sales بعد از تکمیل تقویم:", nrow(sales_daily), "\n\n")
+
+# تجمیع Transactions روزانه
+trans_daily <- transactions %>%
+  group_by(date) %>%
+  summarise(transactions = sum(transactions, na.rm = TRUE)) %>%
+  ungroup()
+
+cat("تعداد روزهای Transactions قبل از تکمیل تقویم:", nrow(trans_daily), "\n")
+
+trans_daily <- full_cal %>%
+  left_join(trans_daily %>% mutate(date = as.Date(date)), by = "date") %>%
+  mutate(transactions = replace_na(transactions, 0))
+
+cat("تعداد روزهای Transactions بعد از تکمیل تقویم:", nrow(trans_daily), "\n\n")
+
+# تمیزکاری Oil Price
+names(oil)[names(oil) == "dcoilwtico"] <- "oil_price"
+
+oil_full <- full_cal %>%
+  left_join(oil %>% mutate(date = as.Date(date)), by = "date") %>%
+  mutate(oil_price = na.approx(oil_price, na.rm = FALSE)) %>%
+  fill(oil_price, .direction = "downup")
+
+cat("تعداد NA باقیمانده در Oil Price بعد از interpolation:",
+    sum(is.na(oil_full$oil_price)), "\n\n")
+
+# 3. Merge بر اساس تقویم کامل 
+final_data <- full_cal %>%
+  left_join(sales_daily %>% mutate(date = as.Date(date)), by = "date") %>%
+  left_join(trans_daily %>% mutate(date = as.Date(date)), by = "date") %>%
+  left_join(oil_full %>% select(date, oil_price) %>% mutate(date = as.Date(date)), by = "date") %>%
+  arrange(date)
+
+cat("تعداد مقادیر گمشده در هر ستون:\n")
+print(colSums(is.na(final_data)))
+
+write.csv(final_data, "final_data.csv", row.names = FALSE)
+```
+
+```{r}
+#2
+#final dataset
+final_data <- read_csv("final_data.csv")
+final_data$date <- as.Date(final_data$date)
+```
+```{r}
+#3
+#  تحلیل توصیفی
+
+cat("خلاصه آماری Sales:\n"); print(summary(final_data$sales))
+cat("\nخلاصه آماری Transactions:\n"); print(summary(final_data$transactions))
+cat("\nخلاصه آماری Oil Price:\n"); print(summary(final_data$oil_price))
+
+# نمودار سری زمانی هر متغیر
+p1 <- ggplot(final_data, aes(x = date, y = sales)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Sales ", x = "تاریخ", y = "فروش") +
+  theme_minimal()
+
+p2 <- ggplot(final_data, aes(x = date, y = transactions)) +
+  geom_line(color = "darkorange") +
+  labs(title = "Transactions (روند تراکنش های روزانه)", x = "تاریخ", y = "تراکنش") +
+  theme_minimal()
+
+p3 <- ggplot(final_data, aes(x = date, y = oil_price)) +
+  geom_line(color = "darkgreen") +
+  labs(title = "Oil Price (روند قیمت نفت)", x = "تاریخ", y = "قیمت ($)") +
+  theme_minimal()
+
+print(p1); print(p2); print(p3)
+
+# همبستگی بین متغیرها
+cor_matrix <- cor(final_data[, c("sales", "transactions", "oil_price")])
+cat("\nماتریس همبستگی:\n")
+print(round(cor_matrix, 3))
+
+pairs(final_data[, c("sales", "transactions", "oil_price")],
+      main = "نمودار پراکندگی بین متغیرها")
+
+#  تجزیه سری زمانی (Decomposition)
+sales_ts <- ts(final_data$sales, frequency = 7)  # فصل هفتگی
+decomp <- stl(sales_ts, s.window = "periodic")
+plot(decomp, main = "تجزیه سری زمانی Sales (Trend / Seasonal / Remainder)")
+```
+
+
+
+```{r}
+#4
+# بررسی ایستایی
+
+check_stationarity <- function(series, name) {
+  acf(series, lag.max = 30, main = paste("ACF -", name))
+  pacf(series, lag.max = 30, main = paste("PACF -", name))
+
+  adf_result <- adf.test(series)
+  cat("آزمون ADF -", name, ":\n")
+  cat("  آماره:", round(adf_result$statistic, 3), "\n")
+  cat("  p-value:", round(adf_result$p.value, 4), "\n")
+  if (adf_result$p.value < 0.05) {
+    cat("  نتیجه: سری ایستاست (رد فرض صفر)\n")
+  } else {
+    cat("  نتیجه: سری ایستا نیست (عدم رد فرض صفر) -> نیاز به تفاضل گیری\n")
+  }
+
+  d_needed <- ndiffs(series)
+  cat("  تعداد تفاضل گیری پیشنهادی (ndiffs):", d_needed, "\n")
+
+  return(d_needed)
+}
+
+trans_ts <- ts(final_data$transactions, frequency = 7)
+oil_ts   <- ts(final_data$oil_price,    frequency = 7)
+
+d_sales <- check_stationarity(sales_ts, "Sales")
+d_trans <- check_stationarity(trans_ts, "Transactions")
+d_oil   <- check_stationarity(oil_ts,   "Oil Price")
+
+#تفاضل گیری از Sales  
+if (d_sales > 0) {
+  sales_diff <- diff(sales_ts, differences = d_sales)
+  cat("\nبعد از", d_sales, "بار تفاضل گیری، سری Sales:\n")
+  plot(sales_diff, main = paste("Sales بعد از", d_sales, "بار تفاضل گیری"))
+  acf(sales_diff, lag.max = 30, main = "ACF - Sales (Differenced)")
+  pacf(sales_diff, lag.max = 30, main = "PACF - Sales (Differenced)")
+
+  adf_diff <- adf.test(sales_diff)
+  cat("آزمون ADF بعد از تفاضل گیری - p-value:", round(adf_diff$p.value, 4), "\n")
+  
+cat("آزمون KPSS برای Sales \n")
+print(kpss.test(sales_ts, null = "Level"))
+
+cat("\n آزمون KPSS برای Transactions \n")
+print(kpss.test(trans_ts, null = "Level"))
+
+cat("\n آزمون KPSS برای Oil Price \n")
+print(kpss.test(oil_ts, null = "Level"))
+}
+```
+```{r}
+#5.1
+#  Model Fitting
+
+#  Best Non-seasonal ARIMA
+best_arima <- auto.arima(
+  sales_ts,
+  seasonal = FALSE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+cat(" Best Non-seasonal ARIMA \n")
+summary(best_arima)
+
+
+# Educational Comparison Models
+
+# AR Model
+ar_model <- Arima(sales_ts, order = c(1,1,0))
+cat("\n AR(1,1,0)\n")
+summary(ar_model)
+
+
+# MA Model
+ma_model <- Arima(sales_ts, order = c(0,1,1))
+cat("\nMA(0,1,1) \n")
+summary(ma_model)
+
+
+# ARMA Model
+arma_model <- Arima(sales_ts, order = c(1,1,1))
+cat("\nARMA(1,1,1) \n")
+summary(arma_model)
+
+
+#  Best Seasonal SARIMA
+sarima_model <- auto.arima(
+  sales_ts,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+cat("\n Best Seasonal SARIMA \n")
+summary(sarima_model)
+```
+
+
+
+```{r}
+#5.2
+# مقایسه مدل ها
+models_list <- list(
+  "AR(1,1,0)"                          = ar_model,
+  "MA(0,1,1)"                          = ma_model,
+  "ARMA(1,1,1)"                        = arma_model,
+  "ARIMA auto.arima (non-seasonal)"    = best_arima,
+  "SARIMA (weekly)"                    = sarima_model,
+  "Reg w/ ARIMA errors (transactions)" = xreg_model
+)
+
+comparison <- data.frame(
+  Model = names(models_list),
+  AIC   = sapply(models_list, AIC),
+  BIC   = sapply(models_list, BIC),
+  RMSE  = sapply(models_list, function(m) accuracy(m)[1, "RMSE"])
+) %>% arrange(AIC)
+
+# اختلاف هر مدل با بهترین مدل
+comparison$DeltaAIC <- comparison$AIC - min(comparison$AIC)
+print(comparison)
+```
+
+
+
+```{r}
+#6
+#  Final Model Diagnostics
+
+cat("\n Final Model: Seasonal SARIMA \n")
+
+summary(sarima_model)
+
+cat("\n Residual Diagnostics\n")
+
+checkresiduals(sarima_model)
+
+cat("\n QQ Plot of Residuals\n")
+
+qqnorm(
+  residuals(sarima_model),
+  main = "QQ Plot of SARIMA Residuals"
+)
+
+qqline(
+  residuals(sarima_model),
+  col = "darkred")
+```
+```{r}
+#7
+#  Out-of-Sample Validation (Train/Test Split)
+
+n <- length(sales_ts)
+h_test <- 30
+
+train_ts <- window(sales_ts, end = time(sales_ts)[n - h_test])
+test_ts  <- window(sales_ts, start = time(sales_ts)[n - h_test + 1])
+
+# برازش مدل روی داده های آموزش
+train_model <- auto.arima(
+  train_ts,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+
+fc_test <- forecast(train_model, h = h_test)
+
+cat("\n----- Out-of-Sample Forecast Accuracy -----\n")
+print(accuracy(fc_test, test_ts))
+
+# نمایش پیش بینی در کنار مقادیر واقعی
+autoplot(fc_test) +
+  autolayer(test_ts, series = "Actual") +
+  labs(
+    title = "Out-of-Sample Forecast (Last 30 Days)",
+    x = "Time",
+    y = "Sales"
+  ) +
+  theme_minimal()
+```
+

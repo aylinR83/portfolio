@@ -1,0 +1,254 @@
+---
+title: "Ensemble Learning Analysis"
+author: "Aylin Rahmanipoor"
+output: html_document
+---
+
+```{r}
+library(ISLR2)
+library(rpart)
+library(gbm)
+library(pROC)
+library(ggplot2)
+library(caret)
+library(randomForest)
+```
+
+```{r}
+#Prepare Dataset 
+#Define Classification task
+
+data(Carseats)
+Carseats$High <- as.factor(ifelse(Carseats$Sales > 8, "Yes", "No"))
+
+Carseat_data <- Carseats[, !(names(Carseats) %in% "Sales")]
+
+table(Carseat_data$High)
+prop.table(table(Carseat_data$High))
+```
+
+```{r}
+#Test-Train split
+
+set.seed(123)
+train_index <- sample(1:nrow(Carseat_data), size = 0.7 * nrow(Carseat_data))
+train_data <- Carseat_data[train_index, ]
+test_data  <- Carseat_data[-train_index, ]
+```
+
+```{r}
+#DesicionTree
+#base Model
+
+set.seed(123)
+base_model <- rpart(High ~ ., data = train_data, method = "class")
+
+base_pred_class <- predict(base_model, test_data, type = "class")
+base_pred_prob  <- predict(base_model, test_data, type = "prob")[, "Yes"]
+
+base_acc <- mean(base_pred_class == test_data$High)
+base_auc <- auc(roc(test_data$High, base_pred_prob, levels = c("No", "Yes")))
+base_cm  <- confusionMatrix(base_pred_class, test_data$High, positive = "Yes")
+
+print(base_cm)
+cat("Base Tree Accuracy:", round(base_acc, 4), "\n")
+cat("Base Tree AUC:", round(base_auc, 4), "\n")
+
+
+```
+
+```{r}
+#Bagging
+
+set.seed(123)
+
+bag_model <- randomForest(
+  High ~ .,
+  data = train_data,
+  mtry = ncol(train_data) - 1,
+  ntree = 2000,
+  importance = TRUE
+)
+
+bag_pred_class <- predict(bag_model, test_data, type = "class")
+bag_pred_prob  <- predict(bag_model, test_data, type = "prob")[, "Yes"]
+
+bag_acc <- mean(bag_pred_class == test_data$High)
+bag_auc <- auc(roc(test_data$High, bag_pred_prob, levels = c("No", "Yes")))
+
+bag_cm <- confusionMatrix(
+  bag_pred_class,
+  test_data$High,
+  positive = "Yes"
+)
+
+print(bag_cm)
+cat("Number of Trees (Bagging):", bag_model$ntree, "\n")
+cat("Bagging Accuracy:", round(bag_acc, 4), "\n")
+cat("Bagging AUC:", round(bag_auc, 4), "\n")
+```
+
+```{r}
+#Boosting (gbm نیاز به 0/1 دارد)
+
+train_gbm <- train_data
+test_gbm  <- test_data
+
+train_gbm$High <- ifelse(train_gbm$High == "Yes", 1, 0)
+test_gbm$High  <- ifelse(test_gbm$High == "Yes", 1, 0)
+```
+
+```{r}
+#Adaooost
+
+set.seed(123)
+
+ada_model <- gbm(
+  High ~ .,
+  data = train_gbm,
+  distribution = "adaboost",
+  n.trees = 2000,
+  interaction.depth = 1,
+  shrinkage = 0.01,
+  cv.folds = 5,
+  verbose = FALSE
+)
+best_trees_ada <- gbm.perf(ada_model, method = "cv", plot.it = FALSE)
+
+ada_prob <- predict(ada_model, test_gbm, n.trees = best_trees_ada, type = "response")
+ada_pred <- ifelse(ada_prob > 0.5, 1, 0)
+
+ada_acc <- mean(ada_pred == test_gbm$High)
+ada_auc <- auc(roc(test_gbm$High, ada_prob, levels = c(0, 1)))
+
+ada_cm <- confusionMatrix(
+  factor(ifelse(ada_pred == 1, "Yes", "No")),
+  factor(ifelse(test_gbm$High == 1, "Yes", "No")),
+  positive = "Yes"
+)
+
+print(ada_cm)
+cat("Best number of trees (AdaBoost):", best_trees_ada, "\n")
+cat("AdaBoost Accuracy:", round(ada_acc, 4), "\n")
+cat("AdaBoost AUC:", round(ada_auc, 4), "\n")
+```
+
+```{r}
+# Gradient Boosting 
+
+set.seed(123)
+
+gbm_model <- gbm(
+  High ~ .,
+  data = train_gbm,
+  distribution = "bernoulli",
+  n.trees = 2000,
+  interaction.depth = 3,
+  shrinkage = 0.01,
+  cv.folds = 5,
+  verbose = FALSE
+)
+best_trees <- gbm.perf(gbm_model, method = "cv", plot.it = FALSE)
+
+gbm_prob <- predict(gbm_model, test_gbm, n.trees = best_trees, type = "response")
+gbm_pred <- ifelse(gbm_prob > 0.5, 1, 0)
+
+gbm_acc <- mean(gbm_pred == test_gbm$High)
+gbm_auc <- auc(roc(test_gbm$High, gbm_prob, levels = c(0, 1)))
+
+gbm_cm <- confusionMatrix(
+  factor(ifelse(gbm_pred == 1, "Yes", "No")),
+  factor(ifelse(test_gbm$High == 1, "Yes", "No")),
+  positive = "Yes"
+)
+
+print(gbm_cm)
+cat("Best number of trees (Gradient Boosting):", best_trees, "\n")
+cat("Gradient Boosting Accuracy:", round(gbm_acc, 4), "\n")
+cat("Gradient Boosting AUC:", round(gbm_auc, 4), "\n")
+```
+
+```{r}
+# Variable importance for Bagging
+varImpPlot(bag_model, main = "Variable Importance - Bagging")
+importance(bag_model)
+
+# Variable importance for AdaBoost 
+ada_imp <- summary(ada_model, n.trees = best_trees_ada, plotit = FALSE)
+barplot(ada_imp$rel.inf, names.arg = ada_imp$var, las = 2, cex.names = 0.8,
+        col = "#3B6E9E", main = "Variable Importance - AdaBoost",
+        ylab = "Relative Influence")
+
+# Variable importance for Gradient Boosting 
+gbm_imp <- summary(gbm_model, n.trees = best_trees, plotit = FALSE)
+barplot(gbm_imp$rel.inf, names.arg = gbm_imp$var, las = 2, cex.names = 0.8,
+        col = "#1B3A5C", main = "Variable Importance - Gradient Boosting",
+        ylab = "Relative Influence")
+```
+
+```{r}
+# final comparison table combining all four models
+
+extract_metrics <- function(cm, acc, auc_val, model_name) {
+  data.frame(
+    Model       = model_name,
+    Accuracy    = round(acc, 4),
+    Test_Error  = round(1 - acc, 4),
+    AUC         = round(auc_val, 4),
+    Sensitivity = round(cm$byClass["Sensitivity"], 4),
+    Specificity = round(cm$byClass["Specificity"], 4),
+    Kappa       = round(cm$overall["Kappa"], 4),
+    row.names   = NULL
+  )
+}
+
+comparison_table <- rbind(
+  extract_metrics(base_cm, base_acc, base_auc, "Base Tree"),
+  extract_metrics(bag_cm,  bag_acc,  bag_auc,  "Bagging"),
+  extract_metrics(ada_cm,  ada_acc,  ada_auc,  "AdaBoost"),
+  extract_metrics(gbm_cm,  gbm_acc,  gbm_auc,  "Gradient Boosting")
+)
+
+print(comparison_table)
+
+
+```
+
+```{r}
+# Test error comparison chart 
+
+comparison_table$Model <- factor(comparison_table$Model,
+                                  levels = comparison_table$Model[order(comparison_table$Test_Error)])
+
+ggplot(comparison_table, aes(x = Model, y = Test_Error, fill = Model)) +
+  geom_col(show.legend = FALSE, width = 0.6) +
+  scale_fill_manual(values = c(
+    "Base Tree"          = "#A8C6DF",
+    "Bagging"             = "#6FA3C7",
+    "AdaBoost"             = "#3B6E9E",
+    "Gradient Boosting"   = "#1B3A5C"
+  )) +
+  labs(title = "Model Comparison (Test Error)", y = "Test Error", x = "Model") +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+# ROC curve comparison 
+
+roc_base <- roc(test_data$High, base_pred_prob, levels = c("No", "Yes"))
+roc_bag  <- roc(test_data$High, bag_pred_prob, levels = c("No", "Yes"))
+roc_ada  <- roc(test_gbm$High, ada_prob, levels = c(0, 1))
+roc_gbm  <- roc(test_gbm$High, gbm_prob, levels = c(0, 1))
+
+plot(roc_base, col = "black", lwd = 2, main = "ROC Curve Comparison")
+lines(roc_bag, col = "darkolivegreen", lwd = 2)
+lines(roc_ada, col = "blue", lwd = 2)
+lines(roc_gbm, col = "red", lwd = 2)
+legend("bottomright",
+       legend = c(
+         paste0("Base Tree (AUC = ", round(base_auc, 3), ")"),
+         paste0("Bagging (AUC = ", round(bag_auc, 3), ")"),
+         paste0("AdaBoost (AUC = ", round(ada_auc, 3), ")"),
+         paste0("Gradient Boosting (AUC = ", round(gbm_auc, 3), ")")
+       ),
+       col = c("black","darkolivegreen", "blue", "red"), lwd = 2)
+```

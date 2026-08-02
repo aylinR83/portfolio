@@ -14,7 +14,7 @@ Comparison of six time series forecasting models using the Corporación Favorita
 
 ## Key Results
 - Best in-sample fit: Regression with ARIMA Errors (AIC = 43,123)
-- **Final model: SARIMA(2,0,0)(0,1,2)[7]** — selected for deployment since it
+- **Final model: SARIMA(2,0,0)(0,1,2)[7]**  selected for deployment since it
   forecasts from sales history alone, without depending on future values of
   Transactions/Oil Price that aren't available at forecast time
 - Test RMSE: 90,042.94

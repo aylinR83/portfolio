@@ -20,4 +20,4 @@ R · rpart · randomForest · gbm · caret
 
 ## Files
 - Report.pdf
-- Ensemble_Learning_Analysis.Rmd
+- Ensemble Learning Analysis.Rmd

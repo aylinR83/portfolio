@@ -28,6 +28,6 @@ Comparison of six time series forecasting models using the Corporación Favorita
 
 ## Repository Contents
 - `TimeSeries Report.pdf` — Project report
-- `Time_Series_Forecasting.Rmd` — R Markdown source
+- `Time Series Analysis & Forecasting code.Rmd` — R Markdown source
 
 

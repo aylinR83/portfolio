@@ -9,6 +9,14 @@ This project demonstrates the application of ordinary least squares (OLS) regres
 - Wealth, Inequality, and Social Intolerance
 - Household Income and Voter Turnout
 
+## Key Results
+- GDP Growth → Employment Growth: significant positive effect (β = 0.238,
+  p = 0.002, R² = 0.283)
+- Wealth/Inequality → Social Intolerance: wealthier countries modestly more
+  tolerant (p = 0.036); inequality effect not statistically significant
+- Household Income → Voter Turnout: log-income model outperformed linear
+  (AIC 933.07 vs. 938.04)
+
 ## Methods
 - Simple & Multiple Linear Regression
 - Hypothesis Testing

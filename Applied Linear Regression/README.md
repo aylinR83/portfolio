@@ -28,4 +28,4 @@ This project demonstrates the application of ordinary least squares (OLS) regres
 R · stats (`lm()`)
 
 ## Files
-- Report.pdf
+- Applied Linear Regression Analysis in R.pdf

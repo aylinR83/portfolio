@@ -15,6 +15,3 @@ Tools: R · `rpart` · `randomForest` · `gbm` · `caret`
 Forecasting daily retail sales with AR/MA/ARMA, SARIMA, and Regression with ARIMA Errors, including full stationarity testing and out-of-sample validation.
 Tools: R · `forecast` · `tseries` · `ggplot2`
 
-## Skills
-Core: Statistical modeling · Hypothesis testing · Time series forecasting (ARIMA/SARIMA) · R · Data visualization
-Also explored (coursework):* Ensemble methods (Decision Trees, Bagging, Boosting) · Python (pandas, matplotlib, seaborn, plotly)

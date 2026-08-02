@@ -19,5 +19,5 @@ Testing whether ensemble methods improve on a single decision tree for predictin
 R · rpart · randomForest · gbm · caret
 
 ## Files
-- Report.pdf
+- Ensemble Learning Analysis.pdf
 - Ensemble Learning Analysis.Rmd

@@ -24,6 +24,8 @@ Comparison of six time series forecasting models using the Corporación Favorita
 - tseries
 - ggplot2
 
-## Files
- Report.pdf — Project report
- Time_Series_Forecasting.Rmd—R Markdown source
+## Repository Contents
+- `Report.pdf` — Project report
+- `Time_Series_Forecasting.Rmd` — R Markdown source
+
+

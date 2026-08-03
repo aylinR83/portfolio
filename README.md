@@ -3,7 +3,7 @@ Statistics student with a strong interest in applied data analysis, statistical 
 ## Projects
 
 ### 📈 Linear Regression: Three Case Studies with OLS
-Three independent OLS case studies — OECD employment growth, cross-country social intolerance, and US voter turnout — with manual coefficient derivation and hypothesis testing, verified against R's `lm()` output.
+Three independent OLS case studies ( OECD employment growth, cross-country social intolerance, and US voter turnout ) with manual coefficient derivation and hypothesis testing, verified against R's `lm()` output.
 *Tools: R · `stats (lm())`
 
 ### 🌳 Ensemble Learning for Binary Classification

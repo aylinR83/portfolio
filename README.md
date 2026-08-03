@@ -1,16 +1,24 @@
 # Aylin Rahmanipoor — Statistics & Data Analysis Portfolio
-Statistics student with a strong interest in applied data analysis, statistical modeling, and machine learning.
+
+Statistics student passionate about data analysis, statistical modeling, and machine learning, with hands-on experience in predictive modeling and data-driven problem solving using R.
+
+## About
+
+This repository showcases academic projects completed as part of my Statistics program, focusing on statistical modeling, predictive analytics, and machine learning.
+
 ## Projects
 
-### 📈 Linear Regression: Three Case Studies with OLS
-Three independent OLS case studies ( OECD employment growth, cross-country social intolerance, and US voter turnout ) with manual coefficient derivation and hypothesis testing, verified against R's `lm()` output.
-*Tools: R · `stats (lm())`
+### 📈 Applied Linear Regression Analysis
+Conducted three OLS regression case studies on OECD employment growth, cross-country social intolerance, and US voter turnout, including manual coefficient estimation, hypothesis testing, and validation using R's `lm()`.
+
+**Tools:** R · `stats (lm())`
 
 ### 🌳 Ensemble Learning for Binary Classification
-Comparing a baseline Decision Tree against Bagging, AdaBoost, and Gradient Boosting on a retail sales classification task.
-Tools: R · `rpart` · `randomForest` · `gbm` · `caret`
+Compared a baseline Decision Tree with Bagging, AdaBoost, and Gradient Boosting models for a retail sales classification problem.
+
+**Tools:** R · `rpart` · `randomForest` · `gbm` · `caret`
 
 ### 📊 Time Series Analysis & Forecasting
-Forecasting daily retail sales with AR/MA/ARMA, SARIMA, and Regression with ARIMA Errors, including full stationarity testing and out-of-sample validation.
-Tools: R · `forecast` · `tseries` · `ggplot2`
+Forecasted daily retail sales using AR, MA, ARMA, SARIMA, and Regression with ARIMA Errors, including stationarity testing, model diagnostics, and out-of-sample forecasting.
 
+**Tools:** R · `forecast` · `tseries` · `ggplot2`

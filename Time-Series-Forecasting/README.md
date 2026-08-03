@@ -5,12 +5,13 @@ Forecasting daily retail sales using ARIMA, SARIMA, and regression with ARIMA er
 Comparison of six time series forecasting models using the Corporación Favorita Store Sales dataset.
 
 ## Methods
-- Data preparation
-- EDA
+- Data cleaning and preprocessing
+- Time series aggregation and feature engineering
+- Exploratory Data Analysis (EDA)
 - Stationarity testing (ADF, KPSS)
-- ARIMA & SARIMA
+- ARIMA & SARIMA modeling
 - Regression with ARIMA Errors
-- Model evaluation
+- Model diagnostics and performance evaluation
 
 ## Key Results
 - Best in-sample fit: Regression with ARIMA Errors (AIC = 43,123)

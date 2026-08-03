@@ -1,6 +1,5 @@
 # Aylin Rahmanipoor — Statistics & Data Analysis Portfolio
-Statistics student focused on applied data analysis  from classical regression to time series forecasting and ensemble machine learning.
-
+Statistics student with a strong interest in applied data analysis, statistical modeling, and machine learning.
 ## Projects
 
 ### 📈 Linear Regression: Three Case Studies with OLS
